@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  
+  font-family: 'Fira Code', Tahoma, monospace;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #999;
+  margin: 0;  
+  padding: 5px 20px;
+  padding-left: 28px;  
+  position: relative;
+  height: 29px;
+  
+  flex: 0 0 auto;
+}
+
+.code-box {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  border-top: 1px solid #444;
+}
+
+.code-box > section {
+  height: 100%;
+  max-height: 100%;
+  flex: 1 0 33%;
+  display: flex;
+  flex-direction: column;
+}
+
+.code {
+  flex: 1 0 auto;
+  background: linear-gradient(45deg, #1d1f20, #2f3031);
+  width: 100%;
+}
+
+.CodeMirror {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: white;
+  line-height: 1;
+  font: 14px "Fira Code", Monaco, monospace;
+  caret-color: white;
+}
+
+.CodeMirror-linenumber {
+  color: #343434;
+}
+
+.CodeMirror-gutters {
+  background: transparent;
+  border: 0;
+}
+
+.CodeMirror-cursor {border-left: 1px solid #f8f8f0 !important;}
+
+.box pre       { color: white; }
+.cm-error      { color: red; }
+.cm-keyword    { color: #ddca7e; }
+.cm-atom       { color: #ddca7e; }
+.cm-number     { color: #d0782a; }
+.cm-unit       { color: #d0782a; }
+.cm-def        { color: #809bbd; }
+.cm-property   { color: #9a8297; }
+.cm-operator   { color: #cccccc; }
+.cm-comment    { color: #666666; }
+.cm-string     { color: #96b38a; }
+.cm-string-2   { color: #FFFFFF; }
+.cm-meta       { color: #9a8297; }
+.cm-header     { color: #ff6400; }
+.cm-attribute  { color: #ddca7e; }
+.cm-strong     { color: #ddca7e; }
+.cm-em         { color: #ddca7e; }
+.cm-qualifier  { color: #ddca7e; }
+.cm-builtin    { color: #ddca7e; }
+.box-css .cm-tag { color: #ddca7e; }
