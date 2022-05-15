@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 use std::time::SystemTime;
@@ -11,22 +13,73 @@ use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 use warp::ws::Message;
 use warp::Filter;
-
 const WRITE_INTERVAL: u64 = 30;
 const BACKUP_INTERVAL: u64 = 3600;
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    runtime.spawn(webserver());
+
+    window().unwrap();
+}
+
+fn window() -> wry::Result<()> {
+    use wry::{
+        application::{
+            event::{Event, StartCause},
+            event_loop::{ControlFlow, EventLoop},
+            window::WindowBuilder,
+        },
+        webview::WebViewBuilder,
+    };
+
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new()
+        .with_always_on_top(true)
+        .with_decorations(false)
+        .with_transparent(true)
+        .with_resizable(false)
+        .build(&event_loop)?;
+    let _webview = WebViewBuilder::new(window)?
+        .with_url("http://localhost:42069/index.html")?
+        .build()?;
+
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        match event {
+            Event::NewEvents(StartCause::Init) => println!("The Ramblathon begins!"),
+            _ => {}
+        }
+    });
+}
+
+async fn webserver() {
+    let connected = Arc::new(AtomicBool::new(false));
+
     let buffer = Arc::new(Mutex::new(String::new()));
     let buffer2 = buffer.clone();
 
-    let routes = warp::path("ws")
-        .and(warp::ws())
-        .map(move |ws: warp::ws::Ws| {
+    let ws_route = warp::path("ws").and(warp::ws()).map(
+        move |ws: warp::ws::Ws| -> Box<dyn warp::reply::Reply> {
+            let connected = connected.clone();
+            if connected.load(Ordering::SeqCst) {
+                return Box::new(warp::reply::with_status(
+                    "Already connected with client",
+                    warp::http::StatusCode::TOO_MANY_REQUESTS,
+                ));
+            } else {
+                connected.store(true, Ordering::SeqCst);
+            }
+
             let buffer = buffer.clone();
 
-            ws.on_upgrade(move |websocket| async move {
-                let (mut tx, rx) = websocket.split();
+            Box::new(ws.on_upgrade(move |websocket| async move {
+                let (mut tx, mut rx) = websocket.split();
 
                 let mut initial_buffer = String::new();
                 let mut file = OpenOptions::new()
@@ -40,23 +93,35 @@ async fn main() {
 
                 tx.send(Message::text(initial_buffer)).await.unwrap();
 
-                rx.for_each(|msg| {
-                    let buffer = buffer.clone();
-                    async move {
-                        match msg {
-                            Err(e) => eprintln!("websocket error: {:?}", e),
-                            Ok(msg) => {
-                                if let Ok(msg) = msg.to_str() {
-                                    buffer.lock().await.push_str(msg);
-                                    eprintln!("Processed delta {msg:?} into delta buffer");
-                                }
+                while let Some(msg) = rx.next().await {
+                    match msg {
+                        Err(e) => eprintln!("websocket error: {:?}", e),
+                        Ok(msg) => {
+                            if let Ok(msg) = msg.to_str() {
+                                buffer.lock().await.push_str(msg);
+                                eprintln!("Processed delta {msg:?} into delta buffer");
                             }
                         }
                     }
-                })
-                .await;
-            })
-        });
+                }
+            }))
+        },
+    );
+
+    let file_routes = warp::path("index.html")
+        .map(|| {
+            warp::reply::with_header(include_str!("web/index.html"), "content-type", "text/html")
+        })
+        .or(warp::path("style.css").map(|| {
+            warp::reply::with_header(include_str!("web/style.css"), "content-type", "text/css")
+        }))
+        .or(warp::path("script.js").map(|| {
+            warp::reply::with_header(
+                include_str!("web/script.js"),
+                "content-type",
+                "text/javascript",
+            )
+        }));
 
     // Append to the current buffer file
     let append_to_buffer_task = tokio::task::spawn(async move {
@@ -107,7 +172,7 @@ async fn main() {
     });
 
     tokio::join!(
-        warp::serve(routes).run(([127, 0, 0, 1], 42069)),
+        warp::serve(ws_route.or(file_routes)).run(([127, 0, 0, 1], 42069)),
         append_to_buffer_task,
         copy_task
     )
