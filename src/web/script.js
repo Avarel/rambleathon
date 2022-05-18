@@ -1,6 +1,6 @@
 // https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.30.0/mode/coffeescript/coffeescript.js fork this
 
-let textArea = $('#kaiper-box textarea').text(
+let textArea = $('#ramble textarea').text(
 `Loading the ramblathon...`
 );
 
@@ -8,18 +8,20 @@ let editor = CodeMirror.fromTextArea(textArea[0], {
   theme: "twilight",
   lineNumbers: true,
   lineWrapping: true,
-  indentUnit: 4,
+  electricChars: false,
+  smartIndent: false,
+  scrollbarStyle: "null"
 });
 
 editor.setOption("extraKeys", {
-  Backspace: function(cm) {},
-  Delete: function(cm) {}
+  Backspace: cm => {},
+  Delete: cm => {},
+  Enter: cm => cm.replaceSelection("\n"),
 });
 
 editor.on("cursorActivity", function(event) {
   editor.execCommand("goDocEnd");
 });
-
 editor.doc.readOnly = true;
 
 let batch = "";

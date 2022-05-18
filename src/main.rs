@@ -42,6 +42,7 @@ fn window() -> wry::Result<()> {
         .with_always_on_top(true)
         .with_decorations(false)
         .with_transparent(true)
+        .with_maximized(true)
         .with_resizable(false)
         .build(&event_loop)?;
     let _webview = WebViewBuilder::new(window)?

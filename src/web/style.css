@@ -3,7 +3,8 @@
 }
 
 html, body {
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   height: 100vh;
   margin: 0;
   padding: 0;
@@ -43,7 +44,9 @@ h2 {
 .code {
   flex: 1 0 auto;
   background: linear-gradient(45deg, #1d1f20, #2f3031);
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .CodeMirror {
